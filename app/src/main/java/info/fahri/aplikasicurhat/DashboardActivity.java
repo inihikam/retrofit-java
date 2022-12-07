@@ -13,19 +13,28 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.util.Log;
 import android.view.View;
 
+import java.net.InterfaceAddress;
 import java.util.ArrayList;
 import java.util.List;
 
 import info.fahri.aplikasicurhat.adapter.CurhatAdapter;
+import info.fahri.aplikasicurhat.apiclient.ApiClient;
 import info.fahri.aplikasicurhat.apiclient.Curhat;
+import info.fahri.aplikasicurhat.apiclient.CurhatInterface;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class DashboardActivity extends AppCompatActivity {
 
     SharedPreferences sharedPref;
     RecyclerView recCurhat;
     CurhatAdapter adapter;
+
+    CurhatInterface curhatInterface;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,6 +50,8 @@ public class DashboardActivity extends AppCompatActivity {
         sharedPref = getSharedPreferences(MainActivity.KEY_USER, Context.MODE_PRIVATE);
         String namaUser = sharedPref.getString(MainActivity.KEY_USER, null);
         Snackbar.make(toolbar, "Anda login sebagai: "+namaUser, Snackbar.LENGTH_LONG).show();
+
+        curhatInterface = ApiClient.getClient().create(CurhatInterface.class);
     }
 
     @Override
@@ -50,12 +61,21 @@ public class DashboardActivity extends AppCompatActivity {
     }
 
     private void getAllCurhat(){
-        ArrayList<Curhat> listCurhat = new ArrayList<>();
-        listCurhat.add(new Curhat(1, "Sembarang", "Contoh curhatan yang benar"));
-        listCurhat.add(new Curhat(1, "Sembarang", "sesungguhnya semua curhatan adalah benar, kecuali yang salah."));
-        listCurhat.add(new Curhat(1, "Sembarang", "Sudah contohnya cukup 3 aja"));
-        adapter = new CurhatAdapter(listCurhat);
-        recCurhat.setAdapter(adapter);
+        Call<List<Curhat>> allCurhat = curhatInterface.getCurhat();
+        allCurhat.enqueue(new Callback<List<Curhat>>() {
+            @Override
+            public void onResponse(Call<List<Curhat>> call, Response<List<Curhat>> response) {
+                ArrayList<Curhat> listCurhat = (ArrayList<Curhat>) response.body();
+                adapter = new CurhatAdapter(listCurhat);
+                recCurhat.setAdapter(adapter);
+            }
+
+            @Override
+            public void onFailure(Call<List<Curhat>> call, Throwable t) {
+                Log.e("response_error", t.getMessage());
+            }
+        });
+
     }
 
     private void initFab(){
